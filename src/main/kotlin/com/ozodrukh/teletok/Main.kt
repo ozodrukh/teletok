@@ -19,15 +19,28 @@ fun main(args: Array<String>) {
 //        val bot = VideoExtractorBot(props.getProperty("bot.token"))
 //        bot.start()
 
+        val toks = arrayOf(
+            "https://vt.tiktok.com/ZSFJDAGGL",
+            "https://vt.tiktok.com/ZSNcwY9rQ",
+            "https://vt.tiktok.com/ZSNopUEB4",
+            "https://vt.tiktok.com/ZSNEcfPos",
+            "https://vt.tiktok.com/ZSNEn7WXu"
+        )
+
         val job = SupervisorJob()
         val scope = CoroutineScope(Dispatchers.IO + job)
-        for (x in 0..5) {
+        toks.forEachIndexed { x, url ->
             scope.launch {
                 println("Extracting $x")
+                val e: ExtractedInfo?
                 val t = measureTime {
-                    VideoExtractor("https://vt.tiktok.com/ZSFJDAGGL".toHttpUrl()).extract()
+                    e = VideoExtractor(url.toHttpUrl()).extract()
                 }
-                println("finished $x, ${t.inWholeSeconds} in secs")
+                if(e != null) {
+                    println("finished $x, ${t.inWholeSeconds} in secs, d=${e.duration}s, ${e.width}x${e.height}")
+                } else {
+                    println("finished $x, ${t.inWholeSeconds} in secs")
+                }
             }
         }
 
