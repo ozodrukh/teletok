@@ -1,12 +1,8 @@
 package com.ozodrukh.teletok
 
-import kotlinx.coroutines.*
-import okhttp3.HttpUrl.Companion.toHttpUrl
-import okio.source
-import java.io.File
+    import kotlinx.coroutines.runBlocking
 import java.io.FileReader
 import java.util.*
-import kotlin.time.measureTime
 
 fun main(args: Array<String>) {
     runBlocking {

@@ -109,7 +109,7 @@ class Markdown2Builder() {
     }
 
     fun appendLink(text: String, link: String): Markdown2Builder {
-        builder.append("(${text.escapeMarkdownV2Common()})[${link.escapeMarkdownV2Link()}]")
+        builder.append("[${text.escapeMarkdownV2Common()}](${link.escapeMarkdownV2Link()})")
         return this
     }
 

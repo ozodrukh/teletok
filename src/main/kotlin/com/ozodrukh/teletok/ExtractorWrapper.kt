@@ -52,6 +52,8 @@ class VideoExtractor(val url: HttpUrl) {
         if (exitCode == 0) {
             val output = p.inputStream.bufferedReader().readText()
             return jsonParser.fromJson(output, ExtractedInfo::class.java)
+        } else {
+            p.errorStream.copyTo(System.err)
         }
 
         return null
@@ -76,6 +78,7 @@ data class ExtractedInfo(
     @SerializedName("uploader_url")
     val ownerLink: String,
 
+    @SerializedName("original_url")
     val originalUrl: String,
 
     val artist: String,
