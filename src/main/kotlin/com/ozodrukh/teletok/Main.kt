@@ -23,11 +23,11 @@ fun main(args: Array<String>) {
         val scope = CoroutineScope(Dispatchers.IO + job)
         for (x in 0..5) {
             scope.launch {
-                print("Extracting $x")
+                println("Extracting $x")
                 val t = measureTime {
                     VideoExtractor("https://vt.tiktok.com/ZSFJDAGGL".toHttpUrl()).extract()
                 }
-                print("finished $x, ${t.inWholeSeconds} in secs")
+                println("finished $x, ${t.inWholeSeconds} in secs")
             }
         }
 
