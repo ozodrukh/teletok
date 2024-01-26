@@ -87,6 +87,8 @@ class VideoExtractorBot(private val botToken: String) {
                 }
 
                 if (sentSuccesfully) {
+                    // todo clear cache && memorize extracted video to telegram remote file
+                    // so we don't need to download video again
                     videoFile.delete()
                 }
             }
