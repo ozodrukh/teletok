@@ -76,13 +76,18 @@ class VideoExtractorBot(private val botToken: String) {
         }
 
         if (videoInfo != null) {
-            sendExtractedVideo(chatId, videoInfo) { sentSuccesfully ->
+            val videoFile = File("tt_videos/${videoInfo.id}.${videoInfo.ext}")
+            sendExtractedVideo(chatId, videoFile, videoInfo) { sentSuccesfully ->
                 if (stateMessageId >= 0) {
                     bot.deleteMessage(chatId, stateMessageId)
                 }
 
-                if (userMessageId >= 0) {
+                if (userMessageId >= 0 && sentSuccesfully) {
                    bot.deleteMessage(chatId, userMessageId)
+                }
+
+                if (sentSuccesfully) {
+                    videoFile.delete()
                 }
             }
         } else {
@@ -112,14 +117,13 @@ class VideoExtractorBot(private val botToken: String) {
 
     private fun sendExtractedVideo(
         chatId: ChatId,
+        videoFile: File,
         videoInfo: ExtractedInfo,
         messageSentCallaback: (Boolean) -> Unit
     ) {
         bot.sendVideo(
             chatId,
-            TelegramFile.ByFile(
-                File("tt_videos/${videoInfo.id}.${videoInfo.ext}")
-            ),
+            TelegramFile.ByFile(videoFile),
             parseMode = ParseMode.MARKDOWN_V2,
             caption = videoInfo.asCaption(),
             duration = videoInfo.duration.toInt(),
