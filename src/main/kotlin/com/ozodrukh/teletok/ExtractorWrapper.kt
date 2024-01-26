@@ -23,7 +23,8 @@ fun ExtractedInfo.asCaption(): String {
     return markdown2()
         .appendBold("$creator - $title\n\n")
         .appendEscaped("$artist - $track🎧\n\n")
-        .appendEscaped("${humanReadableCounter(viewsCount)}👀 - ${humanReadableCounter(likesCount)}❤️")
+        .appendEscaped("${humanReadableCounter(viewsCount)}👀 - ${humanReadableCounter(likesCount)}❤️\n\n")
+        .appendLink("TikTok", originalUrl)
         .toString()
 
 }
@@ -44,6 +45,8 @@ class VideoExtractor(val url: HttpUrl) {
     private val jsonParser = Gson()
 
     suspend fun extract(): ExtractedInfo? {
+        //yt-dlp https://vt.tiktok.com/ZSFJDAGGL -j --no-simulate -o "tt_videos/%(id)s.%(ext)s"
+
         val p = runCommand(arrayOf("yt-dlp", url.toString(), "-j", "--no-simulate", "-o", "tt_videos/%(id)s.%(ext)s"))
         val exitCode = p.exitValue()
         if (exitCode == 0) {
@@ -72,6 +75,8 @@ data class ExtractedInfo(
     val creatorHandle: String,
     @SerializedName("uploader_url")
     val ownerLink: String,
+
+    val originalUrl: String,
 
     val artist: String,
     val track: String,

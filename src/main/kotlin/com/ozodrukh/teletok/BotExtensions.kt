@@ -108,6 +108,11 @@ class Markdown2Builder() {
         return appendWrapAndEscapeContent("_", text)
     }
 
+    fun appendLink(text: String, link: String): Markdown2Builder {
+        builder.append("(${text.escapeMarkdownV2Common()})[${link.escapeMarkdownV2Link()}]")
+        return this
+    }
+
     override fun toString(): String {
         return builder.toString()
     }
