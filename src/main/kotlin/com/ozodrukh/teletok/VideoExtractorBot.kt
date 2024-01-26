@@ -13,13 +13,18 @@ import kotlinx.coroutines.*
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.File
+import java.util.concurrent.Executors
 
 class VideoExtractorBot(private val botToken: String) {
     private val scope = CoroutineScope(
         Dispatchers.IO +
-                CoroutineName("extractor-worker") +
+                CoroutineName("bot-worker") +
                 SupervisorJob()
     )
+
+    private val extractorDispatcher = Executors
+        .newFixedThreadPool(2)
+        .asCoroutineDispatcher()
 
     private var username: String? = null
     private val bot = bot {
@@ -66,7 +71,9 @@ class VideoExtractorBot(private val botToken: String) {
         )
 
         val extractor = VideoExtractor(videoUrl)
-        val videoInfo = extractor.extract()
+        val videoInfo = withContext(extractorDispatcher) {
+            extractor.extract()
+        }
 
         if (videoInfo != null) {
             sendExtractedVideo(chatId, videoInfo) { sentSuccesfully ->
