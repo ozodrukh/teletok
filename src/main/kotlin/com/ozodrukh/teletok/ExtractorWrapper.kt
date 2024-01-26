@@ -21,8 +21,8 @@ suspend fun runCommand(command: Array<String>): Process {
 
 fun ExtractedInfo.asCaption(): String {
     return markdown2()
-        .appendBold("$creator - $title\n")
-        .appendEscaped("$artist - $track🎧\n")
+        .appendBold("$creator - $title\n\n")
+        .appendEscaped("$artist - $track🎧\n\n")
         .appendEscaped("${humanReadableCounter(viewsCount)}👀 - ${humanReadableCounter(likesCount)}❤️")
         .toString()
 

@@ -32,32 +32,32 @@ class VideoExtractorBot(private val botToken: String) {
                     }
                 }
 
-                onMessage(channelPost.chatId, channelPost.text ?: return@channel)
+                onMessage(channelPost.chatId, channelPost.messageId, channelPost.text ?: return@channel)
             }
             text {
-                onMessage(message.chatId, text)
+                onMessage(message.chatId, -1, text)
             }
         }
     }
 
-    private fun onMessage(chatId: ChatId, text: String) {
+    private fun onMessage(chatId: ChatId, messageId: Long, text: String) {
         val videoUrl = text.toHttpUrlOrNull()
 
         println(videoUrl?.host)
         if (videoUrl != null && videoUrl.host.contains("tiktok")) {
             scope.launch {
-                extractVideo(chatId, videoUrl)
+                extractVideo(chatId, messageId, videoUrl)
             }
         } else {
             bot.sendMessage(chatId, "Please send valid url")
         }
     }
 
-    private suspend fun extractVideo(chatId: ChatId, videoUrl: HttpUrl) {
-        var messageId: Long = -1
+    private suspend fun extractVideo(chatId: ChatId, userMessageId: Long, videoUrl: HttpUrl) {
+        var stateMessageId: Long = -1
         bot.sendMessage(chatId, "📦 extracting video --> $videoUrl").fold(
             ifSuccess = {
-                messageId = it.messageId
+                stateMessageId = it.messageId
                 println("Sent: ${it.messageId}")
             },
             ifError = {
@@ -70,14 +70,20 @@ class VideoExtractorBot(private val botToken: String) {
 
         if (videoInfo != null) {
             sendExtractedVideo(chatId, videoInfo) { sentSuccesfully ->
-                if (messageId >= 0) {
-                    bot.deleteMessage(chatId, messageId)
+                if (stateMessageId >= 0) {
+                    bot.deleteMessage(chatId, stateMessageId)
+                }
+
+                if (userMessageId >= 0) {
+                   bot.deleteMessage(chatId, userMessageId)
                 }
             }
         } else {
-            if (messageId >= 0) {
-                bot.editMessageText(chatId, messageId, null,
-                    "I'm sorry, unsupported [media]($videoUrl) 🥲", ParseMode.MARKDOWN_V2)
+            if (stateMessageId >= 0) {
+                bot.editMessageText(
+                    chatId, stateMessageId, null,
+                    "I'm sorry, unsupported [media]($videoUrl) 🥲", ParseMode.MARKDOWN_V2
+                )
             }
             println("Error couldn't extract $videoUrl")
         }
