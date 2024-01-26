@@ -1,9 +1,6 @@
 package com.ozodrukh.teletok
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.FileReader
 import java.util.*
@@ -22,7 +19,8 @@ fun main(args: Array<String>) {
 //        val bot = VideoExtractorBot(props.getProperty("bot.token"))
 //        bot.start()
 
-        val scope = CoroutineScope(Dispatchers.IO)
+        val job = SupervisorJob()
+        val scope = CoroutineScope(Dispatchers.IO + job)
         for (x in 0..5) {
             scope.launch {
                 print("Extracting $x")
@@ -32,5 +30,7 @@ fun main(args: Array<String>) {
                 print("finished $x, ${t.inWholeSeconds} in secs")
             }
         }
+
+        job.join()
     }
 }
