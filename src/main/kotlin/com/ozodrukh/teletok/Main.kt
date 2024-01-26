@@ -7,11 +7,10 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.FileReader
 import java.util.*
+import kotlin.time.measureTime
 
 fun main(args: Array<String>) {
     runBlocking {
-        val url = "https://vt.tiktok.com/ZSFJDAGGL"
-        println("extracting $url")
 //    with(VideoExtractor(url)) {
 //        println(extract())
 //        download()
@@ -26,7 +25,11 @@ fun main(args: Array<String>) {
         val scope = CoroutineScope(Dispatchers.IO)
         for (x in 0..5) {
             scope.launch {
-                VideoExtractor("https://vt.tiktok.com/ZSFJDAGGL".toHttpUrl()).extract()
+                print("Extracting $x")
+                val t = measureTime {
+                    VideoExtractor("https://vt.tiktok.com/ZSFJDAGGL".toHttpUrl()).extract()
+                }
+                print("finished $x, ${t.inWholeSeconds} in secs")
             }
         }
     }
