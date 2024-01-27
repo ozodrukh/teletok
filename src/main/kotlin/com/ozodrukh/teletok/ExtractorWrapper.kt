@@ -1,5 +1,6 @@
 package com.ozodrukh.teletok
 
+import com.github.kotlintelegrambot.entities.ParseMode
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -21,8 +22,18 @@ suspend fun runCommand(command: Array<String>): Process {
 
 fun ExtractedInfo.asCaption(): String {
     return markdown2()
-        .appendBold("$creator - $title\n\n")
-        .appendEscaped("$artist - $track🎧\n\n")
+        .let {
+            if (title.length > 120) {
+                val title = if (title.length >= 1024) title.substring(0, 1000) + "…" else title
+
+
+                it.appendBold(creator)
+                it.appendEscaped(" - $title\n\n")
+            } else {
+                it.appendBold("$creator - $title\n\n")
+            }
+        }
+        .appendEscaped("🎧 $artist - $track\n\n")
         .appendEscaped("${humanReadableCounter(viewsCount)}👀 - ${humanReadableCounter(likesCount)}❤️\n\n")
         .appendLink("TikTok", originalUrl)
         .toString()
@@ -53,7 +64,14 @@ class VideoExtractor(val url: HttpUrl) {
             val output = p.inputStream.bufferedReader().readText()
             return jsonParser.fromJson(output, ExtractedInfo::class.java)
         } else {
-            p.errorStream.copyTo(System.err)
+            val text = p.errorStream.bufferedReader().readText()
+            System.err.println(text)
+
+            ChannelLogger.getLogger()
+                .logMessage(markdown2()
+                    .appendEscaped("ExtractorError -- ")
+                    .appendFixedBlock(text)
+                    .toString(), ParseMode.MARKDOWN_V2)
         }
 
         return null

@@ -17,6 +17,7 @@ fun main(args: Array<String>) {
         val bot = VideoExtractorBot(props.getProperty("bot.token"))
         bot.start()
 
+
 //        val toks = arrayOf(
 //            "https://vt.tiktok.com/ZSFJDAGGL",
 //            "https://vt.tiktok.com/ZSNcwY9rQ",

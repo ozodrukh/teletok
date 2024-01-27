@@ -96,6 +96,12 @@ class Markdown2Builder() {
         return this
     }
 
+    fun appendFixedBlock(text: String) {
+        builder.append("```")
+        appendEscaped(text)
+        builder.append("```")
+    }
+
     fun appendBold(text: String): Markdown2Builder {
         return appendWrapAndEscapeContent("*", text)
     }

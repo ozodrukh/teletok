@@ -5,6 +5,7 @@ import com.github.kotlintelegrambot.dispatch
 import com.github.kotlintelegrambot.dispatcher.channel
 import com.github.kotlintelegrambot.dispatcher.text
 import com.github.kotlintelegrambot.entities.ChatId
+import com.github.kotlintelegrambot.entities.Message
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.TelegramFile
 import com.github.kotlintelegrambot.network.fold
@@ -37,24 +38,38 @@ class VideoExtractorBot(private val botToken: String) {
                     }
                 }
 
-                onMessage(channelPost.chatId, channelPost.messageId, channelPost.text ?: return@channel)
+                onMessage(channelPost, channelPost.text ?: return@channel)
             }
             text {
-                onMessage(message.chatId, -1, text)
+                onMessage(message, text)
             }
         }
     }
 
-    private fun onMessage(chatId: ChatId, messageId: Long, text: String) {
+    private fun onMessage(message: Message, text: String) {
+        val private = message.chat.type == "private"
+        val chatId: ChatId = message.chatId
+        val messageId: Long = if (private) -1 else message.messageId
+
         val videoUrl = text.toHttpUrlOrNull()
 
-        println(videoUrl?.host)
+        val logMessageOwner = ChannelLogger.getLogger().getMessageOwner(message)
+
         if (videoUrl != null && videoUrl.host.contains("tiktok")) {
+
+            ChannelLogger.getLogger()
+                .logMessage("$logMessageOwner - extract request - ${message.text}")
+
             scope.launch {
                 extractVideo(chatId, messageId, videoUrl)
             }
         } else {
-            bot.sendMessage(chatId, "Please send valid url")
+            ChannelLogger.getLogger()
+                .logMessage("$logMessageOwner - bad url")
+
+            if (private) {
+                bot.sendMessage(chatId, "Please send valid Tiktok url")
+            }
         }
     }
 
@@ -63,9 +78,12 @@ class VideoExtractorBot(private val botToken: String) {
         bot.sendMessage(chatId, "📦 extracting video --> $videoUrl").fold(
             ifSuccess = {
                 stateMessageId = it.messageId
-                println("Sent: ${it.messageId}")
+                println("pending request - ${it.messageId}")
             },
             ifError = {
+                ChannelLogger.getLogger()
+                    .logMessage("Error + ${it.describeError()}")
+
                 println("Error: " + it.describeError())
             }
         )
@@ -83,7 +101,7 @@ class VideoExtractorBot(private val botToken: String) {
                 }
 
                 if (userMessageId >= 0 && sentSuccesfully) {
-                   bot.deleteMessage(chatId, userMessageId)
+                    bot.deleteMessage(chatId, userMessageId)
                 }
 
                 if (sentSuccesfully) {
@@ -99,6 +117,9 @@ class VideoExtractorBot(private val botToken: String) {
                     "I'm sorry, unsupported [media]($videoUrl) 🥲", ParseMode.MARKDOWN_V2
                 )
             }
+            ChannelLogger.getLogger()
+                .logMessage("Couldn't handle link - $videoUrl")
+
             println("Error couldn't extract $videoUrl")
         }
     }
@@ -106,6 +127,8 @@ class VideoExtractorBot(private val botToken: String) {
     fun start() {
         when (val me = bot.getMe()) {
             is TelegramBotResult.Success -> {
+                ChannelLogger.setLogger(ChannelLogger(bot))
+
                 username = me.value.username
                 bot.startPolling()
             }
@@ -135,7 +158,29 @@ class VideoExtractorBot(private val botToken: String) {
             messageSentCallaback(it?.ok ?: false)
         }, error = {
             messageSentCallaback(false)
-            println("Error: " + it.errorBody?.string())
+
+            if (it.errorBody != null) {
+                ChannelLogger.getLogger().logMessage(
+                    markdown2()
+                        .appendEscaped("Couldn't send message - ${videoInfo.originalUrl}")
+                        .appendFixedBlock(it.errorBody?.string() ?: "unknown")
+                        .toString()
+                )
+
+                println("Error: " + it.errorBody?.string())
+            } else if(it.exception != null) {
+                ChannelLogger.getLogger().logMessage(
+                    markdown2()
+                        .appendEscaped("Couldn't send message - ${videoInfo.originalUrl}")
+                        .appendFixedBlock(it.exception?.message ?: "unknown")
+                        .toString()
+                )
+
+                it.exception?.printStackTrace()
+            }
+
+
+
         })
     }
 }
