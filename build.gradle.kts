@@ -17,6 +17,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0-RC2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.0-RC2")
     implementation("io.github.kotlin-telegram-bot.kotlin-telegram-bot:telegram:818a7c6247")
+
+    implementation("org.tinylog:tinylog-api-kotlin:2.6.2")
+    implementation("org.tinylog:tinylog-impl:2.6.2")
     testImplementation(kotlin("test"))
 }
 

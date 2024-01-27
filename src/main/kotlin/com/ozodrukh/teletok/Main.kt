@@ -1,49 +1,23 @@
 package com.ozodrukh.teletok
 
-    import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.runBlocking
+import org.tinylog.kotlin.Logger
 import java.io.FileReader
 import java.util.*
 
+val AppProperties = Properties().also {
+    it.load(FileReader("privacy/app.properties"))
+}
+
 fun main(args: Array<String>) {
     runBlocking {
-//    with(VideoExtractor(url)) {
-//        println(extract())
-//        download()
-//    }
+        Logger.info { "Extractor Bot Launched" }
 
-        val props = Properties()
-        props.load(FileReader("privacy/app.properties"))
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            Logger.error(e)
+        }
 
-        val bot = VideoExtractorBot(props.getProperty("bot.token"))
+        val bot = VideoExtractorBot(AppProperties.getProperty("bot.token"))
         bot.start()
-
-
-//        val toks = arrayOf(
-//            "https://vt.tiktok.com/ZSFJDAGGL",
-//            "https://vt.tiktok.com/ZSNcwY9rQ",
-//            "https://vt.tiktok.com/ZSNopUEB4",
-//            "https://vt.tiktok.com/ZSNEcfPos",
-//            "https://vt.tiktok.com/ZSNEn7WXu"
-//        )
-//        File("a").source()
-//
-//        val job = SupervisorJob()
-//        val scope = CoroutineScope(Dispatchers.IO + job)
-//        toks.forEachIndexed { x, url ->
-//            scope.launch {
-//                println("Extracting $x")
-//                val e: ExtractedInfo?
-//                val t = measureTime {
-//                    e = VideoExtractor(url.toHttpUrl()).extract()
-//                }
-//                if(e != null) {
-//                    println("finished $x, ${t.inWholeSeconds} in secs, d=${e.duration}s, ${e.width}x${e.height}")
-//                } else {
-//                    println("finished $x, ${t.inWholeSeconds} in secs")
-//                }
-//            }
-//        }
-//
-//        job.join()
     }
 }

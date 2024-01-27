@@ -1,10 +1,10 @@
 package com.ozodrukh.teletok
 
-import com.github.kotlintelegrambot.entities.ParseMode
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.HttpUrl
+import org.tinylog.kotlin.Logger
 import kotlin.coroutines.resume
 
 suspend fun runCommand(command: Array<String>): Process {
@@ -64,14 +64,11 @@ class VideoExtractor(val url: HttpUrl) {
             val output = p.inputStream.bufferedReader().readText()
             return jsonParser.fromJson(output, ExtractedInfo::class.java)
         } else {
-            val text = p.errorStream.bufferedReader().readText()
-            System.err.println(text)
+            val processFailReason: String = p.errorStream
+                .bufferedReader()
+                .readText()
 
-            ChannelLogger.getLogger()
-                .logMessage(markdown2()
-                    .appendEscaped("ExtractorError -- \n\n")
-                    .appendFixedBlock(text)
-                    .toString(), ParseMode.MARKDOWN_V2)
+            Logger.error { "Extraction failed due to:\n$processFailReason" }
         }
 
         return null

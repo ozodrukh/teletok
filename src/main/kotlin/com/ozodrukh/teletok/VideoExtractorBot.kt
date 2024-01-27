@@ -13,6 +13,7 @@ import com.github.kotlintelegrambot.types.TelegramBotResult
 import kotlinx.coroutines.*
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import org.tinylog.kotlin.Logger
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -52,51 +53,58 @@ class VideoExtractorBot(private val botToken: String) {
 
         val videoUrl = text.toHttpUrlOrNull()
 
-        val logMessageOwner = ChannelLogger.getLogger().getMessageOwner(message)
-
         if (videoUrl != null && videoUrl.host.contains("tiktok")) {
-
-            ChannelLogger.getLogger()
-                .logMessage(
-                    logMessageOwner + markdown2()
-                    .appendEscaped(" - extract request - ${message.text}")
-                    .toString(),
-                    ParseMode.MARKDOWN_V2
-                )
+            if (message.from == null) {
+                Logger.warn {
+                    "proceeding request from cid=${message.chat.id} - (${message.chat.title}) -" +
+                            " url=$videoUrl"
+                }
+            } else {
+                message.from?.let {
+                    Logger.warn {
+                        "proceeding request from uid=${it.id} - (${it.firstName} ${it.lastName}) -" +
+                                " url=$videoUrl"
+                    }
+                }
+            }
 
             scope.launch {
                 extractVideo(chatId, messageId, videoUrl)
             }
         } else {
-            ChannelLogger.getLogger()
-                .logMessage(
-                    logMessageOwner + markdown2()
-                        .appendEscaped(" - bad url")
-                        .toString(),
-                    ParseMode.MARKDOWN_V2
-                )
-
             if (private) {
                 bot.sendMessage(chatId, "Please send valid Tiktok url")
+
+                if (message.from == null) {
+                    Logger.warn {
+                        "bad request from cid=${message.chat.id} - (${message.chat.title}) -" +
+                                " url=$videoUrl"
+                    }
+                } else {
+                    message.from?.let {
+                        Logger.warn {
+                            "bad request from uid=${it.id} - (${it.firstName} ${it.lastName}) -" +
+                                    " url=$videoUrl"
+                        }
+                    }
+                }
             }
         }
     }
 
     private suspend fun extractVideo(chatId: ChatId, userMessageId: Long, videoUrl: HttpUrl) {
         var stateMessageId: Long = -1
-        bot.sendMessage(chatId, "📦 extracting video --> $videoUrl").fold(
+        bot.sendMessage(chatId, "👾 downloading video · $videoUrl", disableWebPagePreview = true).fold(
             ifSuccess = {
                 stateMessageId = it.messageId
-                println("pending request - ${it.messageId}")
+                Logger.debug { "Link accepted, pending request - ${it.messageId}" }
             },
             ifError = {
-                ChannelLogger.getLogger()
-                    .logMessage(markdown2()
-                        .appendEscaped("Error sending message\n\n")
-                        .appendFixedBlock(it.describeError())
-                        .toString(), ParseMode.MARKDOWN_V2)
-
-                println("Error: " + it.describeError())
+                Logger.error {
+                    "Failed to send pending message" +
+                            " chatId = ${chatId.id()}" +
+                            " url = $videoUrl"
+                }
             }
         )
 
@@ -129,18 +137,14 @@ class VideoExtractorBot(private val botToken: String) {
                     "I'm sorry, unsupported [media]($videoUrl) 🥲", ParseMode.MARKDOWN_V2
                 )
             }
-            ChannelLogger.getLogger()
-                .logMessage("Couldn't handle link - $videoUrl")
 
-            println("Error couldn't extract $videoUrl")
+            Logger.debug { "Video extraction failed for $videoUrl" }
         }
     }
 
     fun start() {
         when (val me = bot.getMe()) {
             is TelegramBotResult.Success -> {
-                ChannelLogger.setLogger(ChannelLogger(bot))
-
                 username = me.value.username
                 bot.startPolling()
             }
@@ -171,28 +175,11 @@ class VideoExtractorBot(private val botToken: String) {
         }, error = {
             messageSentCallaback(false)
 
-            if (it.errorBody != null) {
-                ChannelLogger.getLogger().logMessage(
-                    markdown2()
-                        .appendEscaped("Couldn't send message - ${videoInfo.originalUrl}")
-                        .appendFixedBlock(it.errorBody?.string() ?: "unknown")
-                        .toString()
-                )
-
-                println("Error: " + it.errorBody?.string())
-            } else if(it.exception != null) {
-                ChannelLogger.getLogger().logMessage(
-                    markdown2()
-                        .appendEscaped("Couldn't send message - ${videoInfo.originalUrl}")
-                        .appendFixedBlock(it.exception?.message ?: "unknown")
-                        .toString()
-                )
-
-                it.exception?.printStackTrace()
-            }
-
-
-
+            it.logEvent(
+                "Sending extracted message failed" +
+                        " chat=${chatId.id()}," +
+                        " url=${videoInfo.originalUrl}"
+            )
         })
     }
 }

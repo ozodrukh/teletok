@@ -1,37 +1,32 @@
 package com.ozodrukh.teletok
 
-import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.Message
-import com.github.kotlintelegrambot.entities.ParseMode
-import com.github.kotlintelegrambot.entities.ReplyMarkup
+import com.github.kotlintelegrambot.network.ResponseError
 import com.github.kotlintelegrambot.types.TelegramBotResult
-
-
-fun Bot.replyTo(
-    message: Message,
-    text: String,
-    parseMode: ParseMode? = null,
-    disableWebPagePreview: Boolean? = null,
-    disableNotification: Boolean? = null,
-    replyToMessageId: Long? = null,
-    allowSendingWithoutReply: Boolean? = null,
-    replyMarkup: ReplyMarkup? = null
-): TelegramBotResult<Message> {
-    return sendMessage(
-        message.chatId,
-        text,
-        parseMode,
-        disableWebPagePreview,
-        disableNotification,
-        replyToMessageId,
-        allowSendingWithoutReply,
-        replyMarkup
-    )
-}
+import org.tinylog.kotlin.Logger
 
 val Message.chatId: ChatId
     get() = ChatId.fromId(chat.id)
+
+fun ChatId.id(): String {
+    return when (this) {
+        is ChatId.Id -> "$id"
+        is ChatId.ChannelUsername -> username
+    }
+}
+
+fun ResponseError.logEvent(baseLogMessage: String) {
+    errorBody?.let {
+        Logger.error {
+            "$baseLogMessage - ${it.string()}"
+        }
+    }
+
+    exception?.let {
+        Logger.error(it, baseLogMessage)
+    }
+}
 
 fun TelegramBotResult.Error.describeError(): String {
     return when (this) {
@@ -96,10 +91,11 @@ class Markdown2Builder() {
         return this
     }
 
-    fun appendFixedBlock(text: String) {
-        builder.append("```")
+    fun appendFixedBlock(text: String): Markdown2Builder {
+        builder.append("```\n")
         appendEscaped(text)
         builder.append("```")
+        return this;
     }
 
     fun appendBold(text: String): Markdown2Builder {
