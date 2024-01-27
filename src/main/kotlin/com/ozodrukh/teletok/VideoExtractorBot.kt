@@ -37,7 +37,6 @@ class VideoExtractorBot(private val botToken: String) {
                         return@channel
                     }
                 }
-
                 onMessage(channelPost, channelPost.text ?: return@channel)
             }
             text {
@@ -58,14 +57,24 @@ class VideoExtractorBot(private val botToken: String) {
         if (videoUrl != null && videoUrl.host.contains("tiktok")) {
 
             ChannelLogger.getLogger()
-                .logMessage("$logMessageOwner - extract request - ${message.text}")
+                .logMessage(
+                    logMessageOwner + markdown2()
+                    .appendEscaped(" - extract request - ${message.text}")
+                    .toString(),
+                    ParseMode.MARKDOWN_V2
+                )
 
             scope.launch {
                 extractVideo(chatId, messageId, videoUrl)
             }
         } else {
             ChannelLogger.getLogger()
-                .logMessage("$logMessageOwner - bad url")
+                .logMessage(
+                    logMessageOwner + markdown2()
+                        .appendEscaped(" - bad url")
+                        .toString(),
+                    ParseMode.MARKDOWN_V2
+                )
 
             if (private) {
                 bot.sendMessage(chatId, "Please send valid Tiktok url")
@@ -82,7 +91,10 @@ class VideoExtractorBot(private val botToken: String) {
             },
             ifError = {
                 ChannelLogger.getLogger()
-                    .logMessage("Error + ${it.describeError()}")
+                    .logMessage(markdown2()
+                        .appendEscaped("Error sending message\n\n")
+                        .appendFixedBlock(it.describeError())
+                        .toString(), ParseMode.MARKDOWN_V2)
 
                 println("Error: " + it.describeError())
             }

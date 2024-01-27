@@ -24,7 +24,7 @@ fun ExtractedInfo.asCaption(): String {
     return markdown2()
         .let {
             if (title.length > 120) {
-                val title = if (title.length >= 1024) title.substring(0, 1000) + "…" else title
+                val title = if (title.length >= 1024) title.substring(0, 650) + "…" else title
 
 
                 it.appendBold(creator)
@@ -69,7 +69,7 @@ class VideoExtractor(val url: HttpUrl) {
 
             ChannelLogger.getLogger()
                 .logMessage(markdown2()
-                    .appendEscaped("ExtractorError -- ")
+                    .appendEscaped("ExtractorError -- \n\n")
                     .appendFixedBlock(text)
                     .toString(), ParseMode.MARKDOWN_V2)
         }

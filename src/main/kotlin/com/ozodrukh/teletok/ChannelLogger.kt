@@ -7,7 +7,7 @@ import com.github.kotlintelegrambot.entities.ParseMode
 
 class ChannelLogger(
     private val bot: Bot,
-    private val channelId: ChatId = ChatId.fromId(2007582141),
+    private val channelId: ChatId = ChatId.fromId(-1002007582141),
 ) {
     companion object {
         private lateinit var instance: ChannelLogger
@@ -27,8 +27,8 @@ class ChannelLogger(
         message.from?.let {
             return markdown2()
                 .appendLink(
-                    "${it.firstName} ${it.lastName}",
-                    "tg://user?id=${it.id})"
+                    "${it.firstName} ${it.lastName ?: ""}",
+                    "tg://user?id=${it.id}"
                 )
                 .toString()
         }
@@ -42,6 +42,12 @@ class ChannelLogger(
     }
 
     fun logMessage(text: String, parseMode: ParseMode? = null) {
-        bot.sendMessage(channelId, text, parseMode, disableNotification = true)
+        bot.sendMessage(
+            channelId, text, parseMode,
+            disableNotification = true,
+            disableWebPagePreview = true
+        ).onError {
+            println(it.describeError())
+        }
     }
 }
