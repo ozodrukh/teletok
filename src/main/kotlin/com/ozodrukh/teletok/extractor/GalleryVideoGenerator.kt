@@ -18,8 +18,8 @@ class GalleryVideoGenerator(
     private val cacheDir: File,
     private val outputName: String,
     private val outputExt: String,
-
     private val client: OkHttpClient = OkHttpClient.Builder().build(),
+    private val slideDuration: Int = 5
 ) {
 
     private val imagesCacheDir = File(cacheDir, outputName)
@@ -71,7 +71,7 @@ class GalleryVideoGenerator(
             commands.add("-loop")
             commands.add("1")
             commands.add("-t")
-            commands.add("3")
+            commands.add("$slideDuration")
             commands.add("-i")
             commands.add("${imagesCacheDir.absolutePath}${File.separator}${outputName}_${id}.jpg")
 
