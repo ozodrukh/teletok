@@ -10,11 +10,11 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.TelegramFile
 import com.github.kotlintelegrambot.network.fold
 import com.github.kotlintelegrambot.types.TelegramBotResult
+import com.ozodrukh.teletok.extractor.*
 import kotlinx.coroutines.*
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.tinylog.kotlin.Logger
-import java.io.File
 import java.util.concurrent.Executors
 
 class VideoExtractorBot(private val botToken: String) {
@@ -53,7 +53,7 @@ class VideoExtractorBot(private val botToken: String) {
 
         val videoUrl = text.toHttpUrlOrNull()
 
-        if (videoUrl != null && videoUrl.host.contains("tiktok")) {
+        if (videoUrl != null) {
             if (message.from == null) {
                 Logger.warn {
                     "proceeding request from cid=${message.chat.id} - (${message.chat.title}) -" +
@@ -73,7 +73,7 @@ class VideoExtractorBot(private val botToken: String) {
             }
         } else {
             if (private) {
-                bot.sendMessage(chatId, "Please send valid Tiktok url")
+                bot.sendMessage(chatId, "Please send valid Tiktok or Instagram url")
 
                 if (message.from == null) {
                     Logger.warn {
@@ -94,7 +94,7 @@ class VideoExtractorBot(private val botToken: String) {
 
     private suspend fun extractVideo(chatId: ChatId, userMessageId: Long, videoUrl: HttpUrl) {
         var stateMessageId: Long = -1
-        bot.sendMessage(chatId, "👾 downloading video · $videoUrl", disableWebPagePreview = true).fold(
+        bot.sendMessage(chatId, "👾 downloading video  ·  $videoUrl", disableWebPagePreview = true).fold(
             ifSuccess = {
                 stateMessageId = it.messageId
                 Logger.debug { "Link accepted, pending request - ${it.messageId}" }
@@ -108,29 +108,12 @@ class VideoExtractorBot(private val botToken: String) {
             }
         )
 
-        val extractor = VideoExtractor(videoUrl)
-        val videoInfo = withContext(extractorDispatcher) {
+        val extractor = YtDlpVideoExtractor(videoUrl, SimpleCaptionConstructor())
+        val result = withContext(extractorDispatcher) {
             extractor.extract()
         }
 
-        if (videoInfo != null) {
-            val videoFile = File("tt_videos/${videoInfo.id}.${videoInfo.ext}")
-            sendExtractedVideo(chatId, videoFile, videoInfo) { sentSuccesfully ->
-                if (stateMessageId >= 0) {
-                    bot.deleteMessage(chatId, stateMessageId)
-                }
-
-                if (userMessageId >= 0 && sentSuccesfully) {
-                    bot.deleteMessage(chatId, userMessageId)
-                }
-
-                if (sentSuccesfully) {
-                    // todo clear cache && memorize extracted video to telegram remote file
-                    // so we don't need to download video again
-                    videoFile.delete()
-                }
-            }
-        } else {
+        result.onFailure {
             if (stateMessageId >= 0) {
                 bot.editMessageText(
                     chatId, stateMessageId, null,
@@ -139,6 +122,24 @@ class VideoExtractorBot(private val botToken: String) {
             }
 
             Logger.debug { "Video extraction failed for $videoUrl" }
+        }
+
+        result.onSuccess {
+            sendExtractedVideo(chatId, it) { sentSuccessfully ->
+                if (stateMessageId >= 0) {
+                    bot.deleteMessage(chatId, stateMessageId)
+                }
+
+                if (userMessageId >= 0 && sentSuccessfully) {
+                    bot.deleteMessage(chatId, userMessageId)
+                }
+
+                if (sentSuccessfully) {
+                    // todo clear cache && memorize extracted video to telegram remote file
+                    // so we don't need to download video again
+                    it.videoFile.delete()
+                }
+            }
         }
     }
 
@@ -158,27 +159,27 @@ class VideoExtractorBot(private val botToken: String) {
 
     private fun sendExtractedVideo(
         chatId: ChatId,
-        videoFile: File,
-        videoInfo: ExtractedInfo,
-        messageSentCallaback: (Boolean) -> Unit
+        extractedVideoMetadata: ExtractedMetaVideo,
+        messageSentCallback: (Boolean) -> Unit
     ) {
         bot.sendVideo(
             chatId,
-            TelegramFile.ByFile(videoFile),
+            TelegramFile.ByFile(extractedVideoMetadata.videoFile),
             parseMode = ParseMode.MARKDOWN_V2,
-            caption = videoInfo.asCaption(),
-            duration = videoInfo.duration.toInt(),
-            width = videoInfo.width,
-            height = videoInfo.height,
+            caption = extractedVideoMetadata.caption,
+            duration = extractedVideoMetadata.metadata.duration,
+            width = extractedVideoMetadata.metadata.width,
+            height = extractedVideoMetadata.metadata.height,
         ).fold(response = {
-            messageSentCallaback(it?.ok ?: false)
+            messageSentCallback(it?.ok ?: false)
         }, error = {
-            messageSentCallaback(false)
+            messageSentCallback(false)
 
             it.logEvent(
                 "Sending extracted message failed" +
                         " chat=${chatId.id()}," +
-                        " url=${videoInfo.originalUrl}"
+                        " url=${extractedVideoMetadata.sourceUrl}," +
+                        " service=${extractedVideoMetadata.sourceService}"
             )
         })
     }
