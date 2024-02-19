@@ -99,7 +99,7 @@ class YtDlpVideoExtractor(
                         images = images,
                         audioFile = audioFile,
                         cacheDir = outputFile.parentFile,
-                        outputName = outputFile.name,
+                        outputName = outputFile.nameWithoutExtension,
                         outputExt = outputFile.extension
                     )
 
