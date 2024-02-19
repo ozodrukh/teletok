@@ -20,7 +20,7 @@ fun main(args: Array<String>) {
 //        testGenerator()
 
         val botName = AppProperties.getProperty("bot.name", "Release Extractor Bot")
-        Logger.info { "$botName Launched" }
+        Logger.info { "$botName Launched - v19.02.2024" }
 
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             Logger.error(e)
