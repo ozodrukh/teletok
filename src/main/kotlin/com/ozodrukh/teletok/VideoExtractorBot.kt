@@ -17,7 +17,9 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.tinylog.kotlin.Logger
 import java.util.concurrent.Executors
 
-class VideoExtractorBot(private val botToken: String) {
+class VideoExtractorBot(
+    private val botToken: String,
+    extractorWorkers: Int) {
     private val scope = CoroutineScope(
         Dispatchers.IO +
                 CoroutineName("bot-worker") +
@@ -25,7 +27,7 @@ class VideoExtractorBot(private val botToken: String) {
     )
 
     private val extractorDispatcher = Executors
-        .newFixedThreadPool(2)
+        .newFixedThreadPool(extractorWorkers)
         .asCoroutineDispatcher()
 
     private var username: String? = null

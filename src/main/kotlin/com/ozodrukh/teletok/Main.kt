@@ -17,8 +17,6 @@ val AppProperties = Properties().also {
 
 fun main(args: Array<String>) {
     runBlocking {
-//        testGenerator()
-
         val botName = AppProperties.getProperty("bot.name", "Release Extractor Bot")
         Logger.info { "$botName Launched - v19.02.2024" }
 
@@ -26,7 +24,11 @@ fun main(args: Array<String>) {
             Logger.error(e)
         }
 
-        val bot = VideoExtractorBot(AppProperties.getProperty("bot.token"))
+        val bot = VideoExtractorBot(
+            botToken = AppProperties.getProperty("bot.token"),
+            extractorWorkers = AppProperties.getProperty("extractor.workers")
+                .toIntOrNull() ?: 2
+        )
         bot.start()
     }
 }
@@ -49,7 +51,7 @@ private suspend fun testGenerator() {
 
     val generator = GalleryVideoGenerator(
         images = images,
-        audioFile = File("/Users/ozodrukh/Documents/Projects/TeleTokChannel/tt_videos/#writing #poetry #fyp  [7331461145640979744].mp3 20-00-23-359.mp3"),
+        audioFile = File("/Users/ozodrukh/Downloads/test_video_gen/422976840_376897618372993_6830905500507794348_n.mp3"),
         cacheDir = File("/Users/ozodrukh/Documents/Projects/TeleTokChannel/tt_videos"),
         outputName = "$extractor-$id",
         outputExt = "mp4"
