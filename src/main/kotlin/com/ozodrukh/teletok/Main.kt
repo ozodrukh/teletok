@@ -18,7 +18,7 @@ val AppProperties = Properties().also {
 fun main(args: Array<String>) {
     runBlocking {
         val botName = AppProperties.getProperty("bot.name", "Release Extractor Bot")
-        Logger.info { "$botName Launched - v19.02.2024" }
+        Logger.info { "$botName Launched - v02.04.2024" }
 
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             Logger.error(e)

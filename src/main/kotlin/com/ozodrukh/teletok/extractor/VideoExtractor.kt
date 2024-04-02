@@ -22,7 +22,7 @@ class YtDlpVideoExtractor(
     protected val cacheDir: File = File("tt_videos"),
 ) : VideoExtractor() {
     private val allowedExtractors = listOf(
-        "TikTok", "vm.tiktok"
+        "TikTok", "vm.tiktok", "TikTokPhoto"
     )
     private val jsonParser = Gson()
 
@@ -34,14 +34,18 @@ class YtDlpVideoExtractor(
         //yt-dlp https://vt.tiktok.com/ZSFJDAGGL -j --no-simulate -o "tt_videos/%(id)s.%(ext)s"
 
         val destination = File(cacheDir, filenameTemplate)
-        val command = arrayListOf(
-            "yt-dlp",
-            url.toString(),
-            "-o", destination.path,
-            // "-f", "mp4",
-            "--use-extractors", allowedExtractors.joinToString(","),
-            "--write-info-json"
-        )
+        val executablePath = (AppProperties.get("extractor.yt_dlp_executable") as String)
+            .split(" ")
+            .toList()
+
+        val command = arrayListOf<String>()
+        command.addAll(executablePath)
+        command.add(url.toString())
+        command.add("-o")
+        command.add(destination.path)
+        // "-f", "mp4",
+//            "--use-extractors", allowedExtractors.joinToString(","),
+        command.add("--write-info-json")
 
         val verboseArgs = listOf(
             "-v",
@@ -58,13 +62,16 @@ class YtDlpVideoExtractor(
         val p = runCommand(command.toTypedArray(), verbose = true)
 
         return if (p.exitValue() == 0) {
+            val retrieveFilenameCommand = arrayListOf<String>()
+            retrieveFilenameCommand.addAll(executablePath)
+            retrieveFilenameCommand.add(url.toString())
+            retrieveFilenameCommand.add("-o")
+            retrieveFilenameCommand.add(destination.path)
+            retrieveFilenameCommand.add("--print")
+            retrieveFilenameCommand.add("filename")
+
             val filename = runCommand(
-                arrayOf(
-                    "yt-dlp",
-                    url.toString(),
-                    "-o", destination.path,
-                    "--print", "filename"
-                )
+                retrieveFilenameCommand.toTypedArray()
             )
                 .inputStream
                 .bufferedReader()
@@ -86,12 +93,12 @@ class YtDlpVideoExtractor(
             // download images & build video from gallery
 
             if (isGalleryPost) {
-                val listOfImagesToken = object: TypeToken<List<Image>>() {}
+                val listOfImagesToken = object : TypeToken<List<Image>>() {}
                 val images: List<Image> = jsonParser.fromJson(
                     rawMetadata.getAsJsonArray("gallery_post"),
                     listOfImagesToken
                 )
-                val audioFile = File(cacheDir,"$extractor-$id.$fileExt")
+                val audioFile = File(cacheDir, "$extractor-$id.$fileExt")
                 val outputFile = File(cacheDir, "$extractor-$id.mp4")
 
                 if (!outputFile.exists()) {
